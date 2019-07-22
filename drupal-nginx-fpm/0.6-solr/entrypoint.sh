@@ -232,7 +232,7 @@ mkdir -p /run/php && touch /run/php/php7.0-fpm.sock && chown nginx:nginx /run/ph
 sed -i "s/SSH_PORT/$SSH_PORT/g" /etc/ssh/sshd_config  
 
 echo "Starting Apache Solr Server ..."
-cd /home/apache-solr/solr/example && java -jar start.jar &
+/usr/src/solr-8.1.1/solr/bin/solr start -force
 
 echo "Starting SSH ..."
 echo "Starting php-fpm ..."

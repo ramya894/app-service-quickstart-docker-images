@@ -48,23 +48,48 @@ RUN set -ex \
 # ----------
 # 4. Java
 # ----------
-	&& apk update \ 
-	&& apk add bash openjdk8-jre \
+  && apk update \ 
+  && apk add bash openjdk8 \
 # ----------
 # ~. clean up
 # ----------
-	&& apk upgrade \
-	&& rm -rf /var/cache/apk/* \
-	&& rm -rf /etc/nginx/conf.d/default.conf 
+  && apk upgrade \
+  && rm -rf /var/cache/apk/* \
+  && rm -rf /etc/nginx/conf.d/default.conf 
 # =========
 # Configure
 # =========
 WORKDIR $DRUPAL_HOME
+
+COPY install_drupal.sh $DRUPAL_HOME
+RUN chmod u+x ${DRUPAL_HOME}/install_drupal.sh \
+  && ${DRUPAL_HOME}/install_drupal.sh
+
 # Apache Solr
-COPY apache-solr-3.5.0-src.tgz /usr/src/apache-solr.tgz
+RUN apk add apache-ant
+COPY solr-8.1.1-src.tgz /usr/src/solr-8.1.1-src.tgz
+
+RUN tar -xvf /usr/src/solr-8.1.1-src.tgz -C /usr/src
+RUN cd /usr/src/solr-8.1.1 \
+  && ant ivy-bootstrap \
+  && ant compile \
+  && cd solr \
+  && ant server \
+  && chmod u+x bin/solr \
+  && solr start
+ENV PATH "/usr/src/solr-8.1.1/solr/bin/:${PATH}"
+EXPOSE 8983 
+
+# search_api_solr
+RUN cd /home/drupal_prj \
+  && composer require drupal/search_api_solr \ 
+  && solr create -c firstcollection -n data_driven_schema_configs -force
+
 # =====
 # final
 # =====
+
+
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 EXPOSE 2222 80
