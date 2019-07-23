@@ -22,48 +22,22 @@ ENV NGINX_LOG_DIR "/home/LogFiles/nginx"
 ENV VARNISH_LOG_DIR "/home/LogFiles/varnish"
 #php
 ENV PHP_CONF_FILE "/usr/local/etc/php/php.ini"
-# ====================
-# Download and Install
-# ~. essentials
-# 1. Drupal
-# ====================
+
 RUN set -ex \
-# --------
-# ~. essentials
-# --------
-# ~. PHP extensions
-# --------
-# -------------
-# 1. Drupal
-# -------------
-# ----------
-# 2. composer
-# ----------
-# ----------
-# 3. drush
-# ----------
-# ----------
-# 4. varnish
-# ----------
-# ----------
-# 4. Java
-# ----------
   && apk update \ 
   && apk add bash openjdk8 \
-# ----------
-# ~. clean up
-# ----------
   && apk upgrade \
   && rm -rf /var/cache/apk/* \
   && rm -rf /etc/nginx/conf.d/default.conf 
-# =========
-# Configure
-# =========
+
+# install drupal and mariadb
 WORKDIR $DRUPAL_HOME
 
-COPY install_drupal.sh $DRUPAL_HOME
-RUN chmod u+x ${DRUPAL_HOME}/install_drupal.sh \
-  && ${DRUPAL_HOME}/install_drupal.sh
+ENV DATABASE_TYPE local
+COPY install_drupal.sh /etc
+RUN chmod u+x /etc/install_drupal.sh \
+  && /etc/install_drupal.sh \
+  && chown -R nginx:nginx $DRUPAL_PRJ 
 
 # Apache Solr
 RUN apk add apache-ant
@@ -76,15 +50,25 @@ RUN cd /usr/src/solr-8.1.1 \
   && cd solr \
   && ant server \
   && chmod u+x bin/solr \
-  && solr start
+  && bin/solr start -force
 ENV PATH "/usr/src/solr-8.1.1/solr/bin/:${PATH}"
-EXPOSE 8983 
 
 # search_api_solr
-RUN cd /home/drupal_prj \
+RUN cd "${DRUPAL_PRJ}" \
   && composer require drupal/search_api_solr \ 
-  && solr create -c firstcollection -n data_driven_schema_configs -force
-
+  && solr start -force \
+  && solr create -c firstcollection -n data_driven_schema_configs -force \
+  && cd /usr/src/solr-8.1.1/solr/server/solr/firstcollection \
+  && mv conf conf.old \
+  && cp -R "${DRUPAL_HOME}"/modules/contrib/search_api_solr/solr-conf-templates/7.x conf \
+  && sed -i '19a <searchComponent name="spellcheck" class="solr.SpellCheckComponent" />'  conf/solrconfig.xml \
+  && adduser -D solr \
+  && chown -R solr:solr conf \
+  && chmod -R 775 conf \
+  && solr stop -force -all \
+#  && sleep 180 \
+  && sleep 5 \ 
+  && solr start -force 
 # =====
 # final
 # =====
@@ -92,5 +76,7 @@ RUN cd /home/drupal_prj \
 
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
-EXPOSE 2222 80
+RUN mkdir -p /home/LogFiles/supervisor/
+
+EXPOSE 80 2222
 ENTRYPOINT ["entrypoint.sh"]
