@@ -77,7 +77,7 @@ RUN cd "${DRUPAL_PRJ}" \
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 RUN mkdir -p /home/LogFiles/supervisor/
-RUN cp -R /home/etc/nginx /etc/nginx
+RUN cp -R /home/etc/nginx/ /etc/nginx/
 
 EXPOSE 80 2222
 ENTRYPOINT ["entrypoint.sh"]
