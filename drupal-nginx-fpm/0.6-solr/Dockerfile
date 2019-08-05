@@ -78,7 +78,7 @@ COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 RUN mkdir -p /home/LogFiles/supervisor/
 RUN mkdir -p /etc/nginx
-RUN mv -rf /home/etc/nginx /etc/nginx
+RUN mv -f /home/etc/nginx /etc/nginx
 
 EXPOSE 80 2222
 ENTRYPOINT ["entrypoint.sh"]
