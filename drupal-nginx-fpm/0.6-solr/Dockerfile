@@ -5,17 +5,12 @@ LABEL maintainer ="Azure App Service Container Images <appsvc-images@microsoft.c
 # ========
 #
 ENV DOCKER_BUILD_HOME "/dockerbuild"
-# drupal 
-ENV DRUPAL_HOME "/home/site/wwwroot"
-ENV DRUPAL_PRJ "/home/drupal_prj"
 # mariadb
 ENV MARIADB_DATA_DIR "/home/data/mysql"
 ENV MARIADB_LOG_DIR "/home/LogFiles/mysql"
 # phpmyadmin
 ENV PHPMYADMIN_SOURCE "/usr/src/phpmyadmin"
 ENV PHPMYADMIN_HOME "/home/phpmyadmin"
-# drupal
-ENV DRUPAL_SOURCE "/usr/src/drupal"
 #nginx
 ENV NGINX_LOG_DIR "/home/LogFiles/nginx"
 #varnish
@@ -31,13 +26,8 @@ RUN set -ex \
   && rm -rf /etc/nginx/conf.d/default.conf 
 
 # install drupal and mariadb
-WORKDIR $DRUPAL_HOME
 
 ENV DATABASE_TYPE local
-COPY install_drupal.sh /etc
-RUN chmod u+x /etc/install_drupal.sh \
-  && /etc/install_drupal.sh \
-  && chown -R nginx:nginx $DRUPAL_PRJ 
 
 # Apache Solr
 RUN apk add apache-ant
