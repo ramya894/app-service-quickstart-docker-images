@@ -64,72 +64,6 @@ setup_phpmyadmin(){
         chown -R nginx:nginx $PHPMYADMIN_HOME
     fi
 }
-
-#Get drupal from Git
-setup_drupal(){
-    if test -d "$DRUPAL_PRJ"  
-    then
-        echo "INFO: $DRUPAL_PRJ is exist, clean it ..."
-        # mv is faster than rm.    
-        mv $DRUPAL_PRJ /home/bak/drupal_prj_bak$(date +%s)
-    fi
-    test ! -d "$DRUPAL_PRJ" && echo "INFO: $DRUPAL_PRJ not found. creating..." && mkdir -p "$DRUPAL_PRJ"	
-	cd $DRUPAL_PRJ
-	GIT_REPO=${GIT_REPO:-https://github.com/azureappserviceoss/drupalcms-composer-azure}
-	GIT_BRANCH=${GIT_BRANCH:-master}
-	echo "INFO: ++++++++++++++++++++++++++++++++++++++++++++++++++:"
-	echo "REPO: "$GIT_REPO
-	echo "BRANCH: "$GIT_BRANCH
-	echo "INFO: ++++++++++++++++++++++++++++++++++++++++++++++++++:"
-    
-	echo "INFO: Clone from "$GIT_REPO
-    git clone $GIT_REPO $DRUPAL_PRJ	&& cd $DRUPAL_PRJ
-	if [ "$GIT_BRANCH" != "master" ];then
-		echo "INFO: Checkout to "$GIT_BRANCH
-		git fetch origin
-	    git branch --track $GIT_BRANCH origin/$GIT_BRANCH && git checkout $GIT_BRANCH
-	fi
-
-    if [ $DATABASE_USERNAME ]; then
-        #cd $DRUPAL_PRJ/web/core/lib/Drupal/Core/Database/Installing
-        echo "INFO: Setting of DATABASE ..."
-        mkdir -p /home/bak
-        mv $DRUPAL_PRJ/web/core/lib/Drupal/Core/Database/Install/Tasks.php /home/bak/Tasks$(date +%s).php        
-        cp $DRUPAL_SOURCE/drupal-database-install-tasks.php $DRUPAL_PRJ/web/core/lib/Drupal/Core/Database/Install/Tasks.php 
-        # cd $DRUPAL_PRJ/
-    fi
-
-    # restore old site to drupal project
-    if [ -d /home/bak/drupal_site ]; then 
-        echo "INFO: Restore old version site ..."
-        while test -d "$DRUPAL_PRJ/web"  
-        do
-            # mv is faster than rm.
-            mv $DRUPAL_PRJ/web /home/bak/drupal_prj_web_bak$(date +%s)            
-        done
-        mv /home/bak/drupal_site $DRUPAL_PRJ/web/
-    fi
-        
-    chmod a+w "$DRUPAL_PRJ/web/sites/default" 
-    if [ -e "$DRUPAL_PRJ/web/sites/default/settings.php" ]; then 
-        #Test this time, if application settings are set to a personal git, myabe drupal has already installed in repo.
-        echo "INFO: Settings.php is exist..."    
-    else
-        echo "INFO: Settings.php isn't exist..."    
-        mkdir -p "$DRUPAL_PRJ/web/sites/default/files"
-        cp "$DRUPAL_PRJ/web/sites/default/default.settings.php" "$DRUPAL_PRJ/web/sites/default/settings.php"
-    fi
-    chmod a+w "$DRUPAL_PRJ/web/sites/default/files"
-    chmod a+w "$DRUPAL_PRJ/web/sites/default/settings.php"
-    while test -d "$DRUPAL_HOME"  
-    do
-        echo "INFO: $DRUPAL_HOME is exist, clean it ..."        
-        chmod 777 -R $DRUPAL_HOME 
-        rm -Rf $DRUPAL_HOME
-    done
-    ln -s $DRUPAL_PRJ/web  $DRUPAL_HOME           	
-}
-
 echo "Setup openrc ..." && openrc && touch /run/openrc/softlevel
 
 DATABASE_TYPE=$(echo ${DATABASE_TYPE}|tr '[A-Z]' '[a-z]')
@@ -162,29 +96,7 @@ if [ "${DATABASE_TYPE}" == "local" ]; then
     mysql -u root -e "GRANT ALL ON *.* TO \`$DATABASE_USERNAME\`@'localhost' IDENTIFIED BY '$DATABASE_PASSWORD' WITH GRANT OPTION; FLUSH PRIVILEGES;"
      
     echo "Installing phpMyAdmin ..."
-    setup_phpmyadmin
-fi
-
-# setup Drupal
-if [ -e "$DRUPAL_HOME/sites/default/settings.php" ]; then
-# Site is exist.
-    echo "INFO: $DRUPAL_PRJ is exist..."
-    echo "INFO: Site is Ready..."
-else
-# drupal isn't installed, fresh start
-    echo "Installing Drupal ..."
-    setup_drupal
-fi
-
-if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
-    echo "INFO: NOT in Azure, chown for "$DRUPAL_PRJ
-    chown -R nginx:nginx $DRUPAL_PRJ 
-fi
-
-if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
-    echo "NOT in AZURE, Start crond, log rotate..."
-    crond
-fi   
+    setup_phpmyadmin 
 
 test ! -d "$SUPERVISOR_LOG_DIR" && echo "INFO: $SUPERVISOR_LOG_DIR not found. creating ..." && mkdir -p "$SUPERVISOR_LOG_DIR"
 test ! -d "$VARNISH_LOG_DIR" && echo "INFO: Log folder for varnish found. creating..." && mkdir -p "$VARNISH_LOG_DIR"
