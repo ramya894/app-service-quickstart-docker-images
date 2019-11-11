@@ -26,6 +26,7 @@ RUN set -ex \
   && rm -rf /etc/nginx/conf.d/default.conf 
 
 # install drupal and mariadb
+WORKDIR $DRUPAL_HOME
 
 ENV DATABASE_TYPE local
 
