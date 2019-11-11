@@ -45,12 +45,23 @@ RUN cd /usr/src/solr-8.2.0 \
 ENV PATH "/usr/src/solr-8.2.0/solr/bin/:${PATH}"
 
 # search_api_solr
+
+RUN cd "${DRUPAL_PRJ}" \
+&& composer require drupal/search_api_solr \ 
+&& solr start -force \
+&& solr create -c firstcollection -n data_driven_schema_configs -force \
+&& cd /usr/src/solr-8.2.0/solr/server/solr/firstcollection \
+&& mv conf conf.old \
+&& cp -R "${DRUPAL_HOME}"/modules/contrib/search_api_solr/solr-conf-templates/7.x conf \
+&& sed -i '19a <searchComponent name="spellcheck" class="solr.SpellCheckComponent" />'  conf/solrconfig.xml \
+&& adduser -D solr \
+&& chown -R solr:solr conf \
+&& chmod -R 775 conf \
+&& solr stop -force -all \
+
 #  && sleep 180 \
-  && sleep 5 \ 
-  && solr start -force 
-# =====
-# final
-# =====
+&& sleep 5 \ 
+&& solr start -force 
 
 
 COPY entrypoint.sh /usr/local/bin/
